@@ -1,19 +1,30 @@
-//! even-better-auth bootstrap (email/password, Google, bearer, admin).
+//! even-better-auth bootstrap (email/password, Google, bearer, admin, organization).
+
+mod actor;
+mod hooks;
+mod org;
+
+pub use actor::Actor;
+pub use org::{active_organization_id, require_active_organization};
 
 use std::sync::Arc;
 
 use even_better_auth::{
-    BetterAuth, BetterAuthOptions, EmailAndPasswordOptions,
+    BetterAuth, BetterAuthOptions, ChangeEmailOptions, DeleteUserOptions,
+    EmailAndPasswordOptions, callback,
     oauth2::ProviderOptions,
     plugins::{
         admin::{AdminOptions, admin},
         bearer::bearer,
+        organization::{
+            InvitationEmail, OrganizationHooks, OrganizationOptions, TeamOptions, organization,
+        },
     },
     social_providers::Google,
 };
 use even_better_auth_sqlx::SqlxAdapter;
 
-use crate::config::AuthConfig;
+use crate::{config::AuthConfig, infrastructure::database};
 
 /// Builds and migrates a [`BetterAuth`] instance for this API.
 ///
@@ -21,24 +32,69 @@ use crate::config::AuthConfig;
 ///
 /// Returns auth/adapter errors when the database cannot be reached or options
 /// are invalid.
-pub async fn build(database_url: &str, config: &AuthConfig) -> even_better_auth::Result<BetterAuth> {
+pub async fn build(
+    database_url: &str,
+    config: &AuthConfig,
+) -> even_better_auth::Result<BetterAuth> {
     let adapter = SqlxAdapter::connect(database_url).await?;
+    let notification_pool = database::connect(database_url)
+        .await
+        .map_err(|err| even_better_auth::Error::Database(err.to_string()))?;
+
     let mut options = BetterAuthOptions::new(Arc::new(adapter));
     options.base_url = Some(config.base_url.clone());
     options.secret = Some(config.secret.clone());
     options.trusted_origins = config.trusted_origins.clone();
     options.email_and_password = EmailAndPasswordOptions::enabled();
-    options.social_providers.push(Arc::new(Google::new(
-        ProviderOptions::new(
+    // Allow email changes in the dashboard without a mailer for unverified accounts.
+    options.user.change_email = ChangeEmailOptions {
+        enabled: true,
+        update_email_without_verification: true,
+        ..Default::default()
+    };
+    // Password-confirmed deletion from Settings → Account.
+    options.user.delete_user = DeleteUserOptions {
+        enabled: true,
+        ..Default::default()
+    };
+    options
+        .social_providers
+        .push(Arc::new(Google::new(ProviderOptions::new(
             config.google_client_id.clone(),
             config.google_client_secret.clone(),
-        ),
-    )));
+        ))));
     options.plugins.push(bearer(Default::default()));
     options.plugins.push(admin(AdminOptions {
         admin_user_ids: config.admin_user_ids.clone(),
         ..Default::default()
     })?);
+    options.plugins.push(organization(OrganizationOptions {
+        teams: TeamOptions {
+            enabled: false,
+            ..Default::default()
+        },
+        // Local/dev stub — invitations still persist; replace with a real mailer in production.
+        send_invitation_email: callback(|email: InvitationEmail| async move {
+            let org_id = email
+                .organization
+                .get("id")
+                .and_then(|value| value.as_str())
+                .unwrap_or("unknown");
+            tracing::info!(
+                invitee = %email.email,
+                role = %email.role,
+                invitation_id = %email.id,
+                organization_id = %org_id,
+                "organization invitation email (stub — not sent)"
+            );
+            Ok(())
+        }),
+        hooks: OrganizationHooks {
+            after_create_invitation: Some(hooks::after_create_invitation(notification_pool)),
+            ..Default::default()
+        },
+        ..Default::default()
+    }));
 
     let auth = BetterAuth::new(options).await?;
     auth.migrate().await?;
@@ -100,18 +156,20 @@ mod tests {
         options.base_url = Some(config.base_url.clone());
         options.secret = Some(config.secret.clone());
         options.email_and_password = EmailAndPasswordOptions::enabled();
-        options.social_providers.push(Arc::new(Google::new(
-            ProviderOptions::new(
+        options
+            .social_providers
+            .push(Arc::new(Google::new(ProviderOptions::new(
                 config.google_client_id.clone(),
                 config.google_client_secret.clone(),
-            ),
-        )));
+            ))));
         options.plugins.push(bearer(Default::default()));
-        options.plugins.push(admin(AdminOptions {
-            admin_user_ids: config.admin_user_ids.clone(),
-            ..Default::default()
-        })
-        .expect("admin plugin"));
+        options.plugins.push(
+            admin(AdminOptions {
+                admin_user_ids: config.admin_user_ids.clone(),
+                ..Default::default()
+            })
+            .expect("admin plugin"),
+        );
 
         assert_eq!(options.social_providers.len(), 1);
         assert_eq!(options.social_providers[0].id(), "google");

@@ -6,12 +6,13 @@ use utoipa::{
 };
 
 use crate::{
-    domain::{CreateItem, HealthResponse, Item, WebhookPingResponse},
+    account::{self, MeResponse},
     error::ErrorBody,
-    handlers::{
-        health, items, me,
-        me::MeResponse,
-        webhooks,
+    health::{self, HealthResponse},
+    items::{self, CreateItem, Item},
+    notifications::{self, Notification},
+    webhooks::{
+        self, CreateWebhookEndpoint, WebhookDelivery, WebhookEndpoint, WebhookPingResponse,
     },
 };
 
@@ -49,20 +50,41 @@ impl Modify for SecurityAddon {
         description = "Versioned Axum + SQLx API (`/v1`) with even-better-auth sessions, Google OAuth, and admin RBAC. Auth protocol: `/api/auth/*` (see README)."
     ),
     paths(
-        health::health,
-        me::me,
-        items::list_items,
-        items::create_item,
-        items::get_item,
-        webhooks::ping_webhook,
+        health::handler::health,
+        account::handler::me,
+        items::handler::list_items,
+        items::handler::create_item,
+        items::handler::get_item,
+        items::handler::delete_item,
+        webhooks::handler::ping_webhook,
+        webhooks::handler::list_webhooks,
+        webhooks::handler::create_webhook,
+        webhooks::handler::delete_webhook,
+        webhooks::handler::ping_account_webhook,
+        webhooks::handler::list_webhook_deliveries,
+        notifications::handler::list_notifications,
+        notifications::handler::mark_notification_read,
+        notifications::handler::mark_all_notifications_read,
     ),
-    components(schemas(Item, CreateItem, HealthResponse, ErrorBody, WebhookPingResponse, MeResponse)),
+    components(schemas(
+        Item,
+        CreateItem,
+        HealthResponse,
+        ErrorBody,
+        WebhookPingResponse,
+        WebhookEndpoint,
+        CreateWebhookEndpoint,
+        WebhookDelivery,
+        Notification,
+        MeResponse
+    )),
     modifiers(&SecurityAddon),
     tags(
         (name = "health", description = "Liveness and readiness"),
         (name = "auth", description = "Current session helpers"),
-        (name = "items", description = "Item CRUD (owner or admin)"),
-        (name = "webhooks", description = "Outbound webhook utilities (reqwest)")
+        (name = "items", description = "Item CRUD (active organisation)"),
+        (name = "webhooks", description = "Account webhooks and ops ping"),
+        (name = "notifications", description = "Organisation inbox")
     )
 )]
 pub struct ApiDoc;

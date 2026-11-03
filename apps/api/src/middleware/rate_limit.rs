@@ -1,9 +1,8 @@
 //! Request throttling via [`tower_governor`].
 //!
 //! Token-bucket limits keyed by client IP (proxy-aware via
-//! [`SmartIpKeyExtractor`](tower_governor::key_extractor::SmartIpKeyExtractor)).
-//! Exceeding the quota returns HTTP 429 with `retry-after` /
-//! `x-ratelimit-*` headers.
+//! [`SmartIpKeyExtractor`]). Exceeding the quota returns HTTP 429 with
+//! `retry-after` / `x-ratelimit-*` headers.
 
 use std::{sync::Arc, time::Duration};
 

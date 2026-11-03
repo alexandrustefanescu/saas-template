@@ -13,8 +13,10 @@ use crate::error::AppError;
 pub struct Item {
     /// Stable unique identifier.
     pub id: Uuid,
-    /// Owning better-auth user id.
+    /// Owning better-auth user id (creator).
     pub user_id: String,
+    /// Active organisation that owns this item.
+    pub organization_id: String,
     /// Display name of the item.
     pub name: String,
     /// Timestamp when the item was created (UTC).
@@ -37,7 +39,7 @@ pub struct CreateItem {
 /// # Examples
 ///
 /// ```
-/// use api::domain::validate_item_name;
+/// use api::items::validate_item_name;
 ///
 /// assert_eq!(validate_item_name("  widget  ").unwrap(), "widget");
 /// assert!(validate_item_name("   ").is_err());

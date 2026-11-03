@@ -7,6 +7,7 @@
     "build": "cargo build --release",
     "test": "cargo test",
     "check": "cargo check",
-    "clippy": "cargo clippy -- -D warnings"
+    "clippy": "cargo clippy -- -D warnings",
+    "docs": "cargo doc --no-deps --open"
   }
 }

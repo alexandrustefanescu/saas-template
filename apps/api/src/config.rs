@@ -127,7 +127,9 @@ impl Config {
             Ok(value) => parse_port(&value)?,
             Err(_) => 8080,
         };
-        let webhook_url = env::var("WEBHOOK_URL").ok().filter(|value| !value.is_empty());
+        let webhook_url = env::var("WEBHOOK_URL")
+            .ok()
+            .filter(|value| !value.is_empty());
         let rate_limit = RateLimitConfig::from_env()?;
         let auth = AuthConfig::from_env()?;
 
@@ -161,8 +163,8 @@ impl AuthConfig {
     }
 
     fn from_env() -> Result<Self, ConfigError> {
-        let secret =
-            env::var("BETTER_AUTH_SECRET").map_err(|_| ConfigError::Missing("BETTER_AUTH_SECRET"))?;
+        let secret = env::var("BETTER_AUTH_SECRET")
+            .map_err(|_| ConfigError::Missing("BETTER_AUTH_SECRET"))?;
         if secret.len() < 32 {
             return Err(ConfigError::SecretTooShort);
         }
@@ -171,8 +173,8 @@ impl AuthConfig {
             .or_else(|_| env::var("BASE_URL"))
             .unwrap_or_else(|_| "http://localhost:8080".to_string());
 
-        let google_client_id = env::var("GOOGLE_CLIENT_ID")
-            .map_err(|_| ConfigError::Missing("GOOGLE_CLIENT_ID"))?;
+        let google_client_id =
+            env::var("GOOGLE_CLIENT_ID").map_err(|_| ConfigError::Missing("GOOGLE_CLIENT_ID"))?;
         let google_client_secret = env::var("GOOGLE_CLIENT_SECRET")
             .map_err(|_| ConfigError::Missing("GOOGLE_CLIENT_SECRET"))?;
 

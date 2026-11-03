@@ -2,28 +2,41 @@
 
 use axum::Json;
 use even_better_auth_axum::AuthSession;
-use serde::Serialize;
 use serde_json::Value;
-use utoipa::ToSchema;
 use utoipa_axum::{router::OpenApiRouter, routes};
 
+use super::domain::MeResponse;
 use crate::state::AppState;
 
-/// Me route table.
+/// Account route table (`/v1/me`).
 pub fn router() -> OpenApiRouter<AppState> {
     OpenApiRouter::new().routes(routes!(me))
 }
 
-/// Authenticated session payload.
-#[derive(Debug, Serialize, ToSchema)]
-pub struct MeResponse {
-    /// Signed-in user (JSON).
-    pub user: Value,
-    /// Active session (JSON).
-    pub session: Value,
-}
-
-/// Returns the current authenticated user and session.
+/// Returns the current authenticated user and session as JSON.
+///
+/// Useful for the dashboard settings shell and session debugging. Identity
+/// mutations (profile, password, organisation) go through `/api/auth/*`.
+///
+/// # Errors
+///
+/// Missing or invalid sessions are rejected by the auth extractor (HTTP 401)
+/// before this handler runs.
+///
+/// # Examples
+///
+/// Response shape:
+///
+/// ```
+/// use api::account::MeResponse;
+/// use serde_json::json;
+///
+/// let body = MeResponse {
+///     user: json!({ "id": "u1", "email": "ada@example.com" }),
+///     session: json!({ "id": "s1" }),
+/// };
+/// assert_eq!(body.user["email"], "ada@example.com");
+/// ```
 #[utoipa::path(
     get,
     path = "/v1/me",

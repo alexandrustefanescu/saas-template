@@ -1,4 +1,3 @@
-//! Infrastructure adapters (database, external systems).
+//! Infrastructure adapters (database pool).
 
 pub mod database;
-pub mod repository;
