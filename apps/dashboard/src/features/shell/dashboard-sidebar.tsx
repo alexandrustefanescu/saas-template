@@ -4,9 +4,11 @@ import ChevronDoubleRight from "@react-spectrum/s2/icons/ChevronDoubleRight";
 import { Link } from "@react-spectrum/s2/Link";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { motion, useReducedMotion } from "motion/react";
-import { Logo } from "./logo";
+import { Logo } from "#/components/logo";
+import { NotificationsPopover } from "#/features/notifications/nav-notifications";
+import { OrganisationSwitcher } from "#/features/organisations/organisation-switcher";
+import { spectrumStyles } from "#/spectrum-styles";
 import { DashboardNavigation } from "./nav-main";
-import { NotificationsPopover } from "./nav-notifications";
 import { useDashboardSidebar } from "./sidebar-context";
 import {
   SIDEBAR_COLLAPSED_WIDTH,
@@ -14,8 +16,6 @@ import {
   sidebarMotion,
   useIsDesktop,
 } from "./sidebar-motion";
-import { spectrumStyles } from "#/spectrum-styles";
-import { TeamSwitcher } from "./team-switcher";
 
 const sidebarBase = style({
   display: "flex",
@@ -29,9 +29,25 @@ const sidebarBase = style({
   boxSizing: "border-box",
   alignSelf: "stretch",
   minHeight: 0,
-  width: "full",
   flexShrink: 0,
   overflow: "hidden",
+});
+
+const sidebarBar = style({
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 8,
+  margin: 12,
+  paddingX: 12,
+  paddingY: 8,
+  borderRadius: "xl",
+  backgroundColor: "gray-100",
+  boxShadow: "elevated",
+  boxSizing: "border-box",
+  alignSelf: "stretch",
+  flexShrink: 0,
+  minWidth: 0,
 });
 
 const headerRow = style({
@@ -93,11 +109,50 @@ const footer = style({
   width: "full",
 });
 
+function LogoHomeLink() {
+  return (
+    <Link
+      href={{ to: "/" }}
+      aria-label="Home"
+      isQuiet
+      isStandalone
+      styles={spectrumStyles(
+        style({
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          textDecoration: "none",
+          color: "neutral",
+        }),
+      )}
+    >
+      <Logo width={28} height={34} />
+    </Link>
+  );
+}
+
 export function DashboardSidebar() {
+  const isDesktop = useIsDesktop();
+  if (!isDesktop) return <DashboardTopBar />;
+  return <DashboardRail />;
+}
+
+function DashboardTopBar() {
+  return (
+    <aside aria-label="Application" className={sidebarBar}>
+      <LogoHomeLink />
+      <DashboardNavigation />
+      <NotificationsPopover />
+      <OrganisationSwitcher />
+    </aside>
+  );
+}
+
+function DashboardRail() {
   const { collapsed, toggle } = useDashboardSidebar();
   const reduceMotion = useReducedMotion();
-  const isDesktop = useIsDesktop();
-  const compact = collapsed && isDesktop;
+  const compact = collapsed;
   const transition = sidebarMotion(reduceMotion);
   const layout = reduceMotion ? false : "position";
 
@@ -107,7 +162,7 @@ export function DashboardSidebar() {
       className={sidebarBase}
       initial={false}
       animate={{
-        width: isDesktop ? (collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH) : "100%",
+        width: collapsed ? SIDEBAR_COLLAPSED_WIDTH : SIDEBAR_EXPANDED_WIDTH,
       }}
       transition={transition}
     >
@@ -118,23 +173,7 @@ export function DashboardSidebar() {
         className={compact ? headerCollapsed : headerRow}
       >
         <motion.div layout={layout} layoutDependency={compact} transition={transition}>
-          <Link
-            href={{ to: "/" }}
-            aria-label="Home"
-            isQuiet
-            isStandalone
-            styles={spectrumStyles(
-              style({
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                textDecoration: "none",
-                color: "neutral",
-              }),
-            )}
-          >
-            <Logo width={28} height={34} />
-          </Link>
+          <LogoHomeLink />
         </motion.div>
 
         <motion.div
@@ -169,7 +208,7 @@ export function DashboardSidebar() {
         transition={transition}
         className={footer}
       >
-        <TeamSwitcher />
+        <OrganisationSwitcher />
       </motion.footer>
     </motion.aside>
   );

@@ -1,0 +1,255 @@
+import { useMemo, useState } from "react";
+import { ActionBar, ActionButton, Text as ActionBarText } from "@react-spectrum/s2/ActionBar";
+import { ActionButton as IconButton } from "@react-spectrum/s2/ActionButton";
+import { Form } from "@react-spectrum/s2/Form";
+import { TextField } from "@react-spectrum/s2/TextField";
+import { Content, Heading, IllustratedMessage } from "@react-spectrum/s2/IllustratedMessage";
+import {
+  Cell,
+  Column,
+  Row,
+  TableBody,
+  TableHeader,
+  TableView,
+  type Selection,
+} from "@react-spectrum/s2/TableView";
+import { Text } from "@react-spectrum/s2/Text";
+import Add from "@react-spectrum/s2/icons/Add";
+import Copy from "@react-spectrum/s2/icons/Copy";
+import Delete from "@react-spectrum/s2/icons/Delete";
+import FolderOpen from "@react-spectrum/s2/illustrations/linear/FolderOpen";
+import { ToastQueue } from "@react-spectrum/s2/Toast";
+import { style } from "@react-spectrum/s2/style" with { type: "macro" };
+import { PageBreadcrumbs } from "#/components/page-breadcrumbs";
+import { Body, PageTitle } from "#/components/typography";
+import { spectrumStyles } from "#/spectrum-styles";
+import { ApiError } from "#/lib/api/client";
+import { createItem, deleteItem, listItems, type Item } from "#/lib/api/items";
+
+const layout = style({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "stretch",
+  gap: 16,
+  width: "full",
+  height: "full",
+  minHeight: 0,
+  flexGrow: 1,
+  boxSizing: "border-box",
+  padding: 8,
+});
+
+const toolbar = style({
+  display: "flex",
+  flexDirection: {
+    default: "column",
+    sm: "row",
+  },
+  alignItems: {
+    default: "stretch",
+    sm: "end",
+  },
+  gap: 12,
+  width: "full",
+  maxWidth: 720,
+});
+
+function itemCreatedAt(item: Item) {
+  return item.created_at ?? item.createdAt ?? "";
+}
+
+function formatCreatedAt(value: string) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString(undefined, {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
+function selectedIds(selection: Selection, items: Item[]) {
+  if (selection === "all") return items.map((item) => item.id);
+  return [...selection].map(String);
+}
+
+type Props = {
+  initialItems: Item[];
+};
+
+export function ItemsTable({ initialItems }: Props) {
+  const [items, setItems] = useState(initialItems);
+  const [name, setName] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
+  const [busy, setBusy] = useState(false);
+
+  const sortedItems = useMemo(
+    () =>
+      [...items].sort((a, b) => {
+        const left = itemCreatedAt(a);
+        const right = itemCreatedAt(b);
+        if (left < right) return 1;
+        if (left > right) return -1;
+        return 0;
+      }),
+    [items],
+  );
+
+  async function refresh() {
+    setItems(await listItems());
+  }
+
+  async function copySelected() {
+    const ids = new Set(selectedIds(selectedKeys, sortedItems));
+    const names = sortedItems.filter((item) => ids.has(item.id)).map((item) => item.name);
+    if (names.length === 0) return;
+    try {
+      await navigator.clipboard.writeText(names.join("\n"));
+      ToastQueue.positive(names.length === 1 ? "Copied name." : `Copied ${names.length} names.`, {
+        timeout: 4000,
+      });
+    } catch {
+      ToastQueue.negative("Could not copy to clipboard.", { timeout: 5000 });
+    }
+  }
+
+  async function deleteSelected() {
+    const ids = selectedIds(selectedKeys, sortedItems);
+    if (ids.length === 0) return;
+    setBusy(true);
+    try {
+      await Promise.all(ids.map((id) => deleteItem(id)));
+      setSelectedKeys(new Set());
+      ToastQueue.positive(ids.length === 1 ? "Item deleted." : `${ids.length} items deleted.`, {
+        timeout: 4000,
+      });
+      await refresh();
+    } catch (error) {
+      const message = error instanceof ApiError ? error.message : "Could not delete items.";
+      ToastQueue.negative(message, { timeout: 5000 });
+      await refresh();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <section className={layout} aria-labelledby="items-heading">
+      <PageBreadcrumbs
+        items={[
+          { id: "home", label: "Home", href: "/" },
+          { id: "items", label: "Items" },
+        ]}
+      />
+      <div className={style({ display: "flex", flexDirection: "column", gap: 4 })}>
+        <PageTitle id="items-heading">Items</PageTitle>
+        <Body>Scan, sort, and add items for your account.</Body>
+      </div>
+
+      <Form
+        onSubmit={(event) => {
+          event.preventDefault();
+          void (async () => {
+            const trimmed = name.trim();
+            if (!trimmed) return;
+            setCreating(true);
+            try {
+              await createItem({ name: trimmed });
+              setName("");
+              ToastQueue.positive("Item created.", { timeout: 4000 });
+              await refresh();
+            } catch (error) {
+              const message = error instanceof ApiError ? error.message : "Could not create item.";
+              ToastQueue.negative(message, { timeout: 5000 });
+            } finally {
+              setCreating(false);
+            }
+          })();
+        }}
+      >
+        <div className={toolbar}>
+          <TextField
+            label="Name"
+            value={name}
+            onChange={setName}
+            isRequired
+            placeholder="New item name"
+            data-testid="items-name"
+            styles={spectrumStyles(style({ width: "full", flexGrow: 1, minWidth: 0 }))}
+          />
+          <IconButton
+            type="submit"
+            aria-label={creating ? "Adding item" : "Add item"}
+            isDisabled={creating || !name.trim()}
+            data-testid="items-create"
+          >
+            <Add />
+          </IconButton>
+        </div>
+      </Form>
+
+      <TableView
+        aria-label="Items"
+        selectionMode="multiple"
+        density="spacious"
+        selectedKeys={selectedKeys}
+        onSelectionChange={setSelectedKeys}
+        styles={spectrumStyles(style({ width: "full", flexGrow: 1, minHeight: 0, height: "full" }))}
+        renderActionBar={() => (
+          <ActionBar isEmphasized>
+            <ActionButton
+              aria-label="Copy"
+              isDisabled={busy}
+              onPress={() => {
+                void copySelected();
+              }}
+            >
+              <Copy />
+              <ActionBarText>Copy</ActionBarText>
+            </ActionButton>
+            <ActionButton
+              aria-label="Delete"
+              isDisabled={busy}
+              data-testid="items-delete"
+              onPress={() => {
+                void deleteSelected();
+              }}
+            >
+              <Delete />
+              <ActionBarText>Delete</ActionBarText>
+            </ActionButton>
+          </ActionBar>
+        )}
+      >
+        <TableHeader>
+          <Column id="name" isRowHeader>
+            Name
+          </Column>
+          <Column id="createdAt">Created</Column>
+        </TableHeader>
+        <TableBody
+          items={sortedItems}
+          renderEmptyState={() => (
+            <IllustratedMessage>
+              <FolderOpen />
+              <Heading>No items yet</Heading>
+              <Content>Add an item above to get started.</Content>
+            </IllustratedMessage>
+          )}
+        >
+          {(item: Item) => (
+            <Row id={item.id}>
+              <Cell>
+                <Text>{item.name}</Text>
+              </Cell>
+              <Cell>
+                <Text>{formatCreatedAt(itemCreatedAt(item))}</Text>
+              </Cell>
+            </Row>
+          )}
+        </TableBody>
+      </TableView>
+    </section>
+  );
+}

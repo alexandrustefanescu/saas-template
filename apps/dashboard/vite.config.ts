@@ -48,8 +48,27 @@ function s2StyleMacroShim(): Plugin {
 
 const isVitest = Boolean(process.env.VITEST);
 
+const apiOrigin = process.env.VITE_API_URL || "http://localhost:8080";
+
+const apiProxy = {
+  "/api": {
+    target: apiOrigin,
+    changeOrigin: true,
+  },
+  "/v1": {
+    target: apiOrigin,
+    changeOrigin: true,
+  },
+};
+
 const config = defineConfig({
   resolve: { tsconfigPaths: true },
+  server: {
+    proxy: apiProxy,
+  },
+  preview: {
+    proxy: apiProxy,
+  },
   optimizeDeps: {
     exclude: [S2_STYLE],
   },

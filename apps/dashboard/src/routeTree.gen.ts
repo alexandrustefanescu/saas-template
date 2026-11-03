@@ -11,10 +11,13 @@
 import { Route as rootRouteImport } from "./routes/__root";
 import { Route as DashboardRouteImport } from "./routes/_dashboard";
 import { Route as ForgotPasswordRouteImport } from "./routes/forgot-password";
+import { Route as OnboardingRouteImport } from "./routes/onboarding";
 import { Route as SignInRouteImport } from "./routes/sign-in";
 import { Route as SignUpRouteImport } from "./routes/sign-up";
 import { Route as DashboardIndexRouteImport } from "./routes/_dashboard/index";
 import { Route as DashboardSplatRouteImport } from "./routes/_dashboard/$";
+import { Route as DashboardItemsRouteImport } from "./routes/_dashboard/items";
+import { Route as DashboardSettingsRouteImport } from "./routes/_dashboard/settings";
 
 const DashboardRoute = DashboardRouteImport.update({
   id: "/_dashboard",
@@ -23,6 +26,11 @@ const DashboardRoute = DashboardRouteImport.update({
 const ForgotPasswordRoute = ForgotPasswordRouteImport.update({
   id: "/forgot-password",
   path: "/forgot-password",
+  getParentRoute: () => rootRouteImport,
+} as any);
+const OnboardingRoute = OnboardingRouteImport.update({
+  id: "/onboarding",
+  path: "/onboarding",
   getParentRoute: () => rootRouteImport,
 } as any);
 const SignInRoute = SignInRouteImport.update({
@@ -45,48 +53,87 @@ const DashboardSplatRoute = DashboardSplatRouteImport.update({
   path: "/$",
   getParentRoute: () => DashboardRoute,
 } as any);
+const DashboardItemsRoute = DashboardItemsRouteImport.update({
+  id: "/items",
+  path: "/items",
+  getParentRoute: () => DashboardRoute,
+} as any);
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
+  id: "/settings",
+  path: "/settings",
+  getParentRoute: () => DashboardRoute,
+} as any);
 
 export interface FileRoutesByFullPath {
   "/": typeof DashboardIndexRoute;
   "/forgot-password": typeof ForgotPasswordRoute;
+  "/onboarding": typeof OnboardingRoute;
   "/sign-in": typeof SignInRoute;
   "/sign-up": typeof SignUpRoute;
   "/$": typeof DashboardSplatRoute;
+  "/items": typeof DashboardItemsRoute;
+  "/settings": typeof DashboardSettingsRoute;
 }
 export interface FileRoutesByTo {
   "/forgot-password": typeof ForgotPasswordRoute;
+  "/onboarding": typeof OnboardingRoute;
   "/sign-in": typeof SignInRoute;
   "/sign-up": typeof SignUpRoute;
   "/$": typeof DashboardSplatRoute;
+  "/items": typeof DashboardItemsRoute;
+  "/settings": typeof DashboardSettingsRoute;
   "/": typeof DashboardIndexRoute;
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport;
   "/_dashboard": typeof DashboardRouteWithChildren;
   "/forgot-password": typeof ForgotPasswordRoute;
+  "/onboarding": typeof OnboardingRoute;
   "/sign-in": typeof SignInRoute;
   "/sign-up": typeof SignUpRoute;
   "/_dashboard/$": typeof DashboardSplatRoute;
+  "/_dashboard/items": typeof DashboardItemsRoute;
+  "/_dashboard/settings": typeof DashboardSettingsRoute;
   "/_dashboard/": typeof DashboardIndexRoute;
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath;
-  fullPaths: "/" | "/forgot-password" | "/sign-in" | "/sign-up" | "/$";
+  fullPaths:
+    | "/"
+    | "/forgot-password"
+    | "/onboarding"
+    | "/sign-in"
+    | "/sign-up"
+    | "/$"
+    | "/items"
+    | "/settings";
   fileRoutesByTo: FileRoutesByTo;
-  to: "/forgot-password" | "/sign-in" | "/sign-up" | "/$" | "/";
+  to:
+    | "/forgot-password"
+    | "/onboarding"
+    | "/sign-in"
+    | "/sign-up"
+    | "/$"
+    | "/items"
+    | "/settings"
+    | "/";
   id:
     | "__root__"
     | "/_dashboard"
     | "/forgot-password"
+    | "/onboarding"
     | "/sign-in"
     | "/sign-up"
     | "/_dashboard/$"
+    | "/_dashboard/items"
+    | "/_dashboard/settings"
     | "/_dashboard/";
   fileRoutesById: FileRoutesById;
 }
 export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRouteWithChildren;
   ForgotPasswordRoute: typeof ForgotPasswordRoute;
+  OnboardingRoute: typeof OnboardingRoute;
   SignInRoute: typeof SignInRoute;
   SignUpRoute: typeof SignUpRoute;
 }
@@ -105,6 +152,13 @@ declare module "@tanstack/react-router" {
       path: "/forgot-password";
       fullPath: "/forgot-password";
       preLoaderRoute: typeof ForgotPasswordRouteImport;
+      parentRoute: typeof rootRouteImport;
+    };
+    "/onboarding": {
+      id: "/onboarding";
+      path: "/onboarding";
+      fullPath: "/onboarding";
+      preLoaderRoute: typeof OnboardingRouteImport;
       parentRoute: typeof rootRouteImport;
     };
     "/sign-in": {
@@ -135,16 +189,34 @@ declare module "@tanstack/react-router" {
       preLoaderRoute: typeof DashboardSplatRouteImport;
       parentRoute: typeof DashboardRoute;
     };
+    "/_dashboard/items": {
+      id: "/_dashboard/items";
+      path: "/items";
+      fullPath: "/items";
+      preLoaderRoute: typeof DashboardItemsRouteImport;
+      parentRoute: typeof DashboardRoute;
+    };
+    "/_dashboard/settings": {
+      id: "/_dashboard/settings";
+      path: "/settings";
+      fullPath: "/settings";
+      preLoaderRoute: typeof DashboardSettingsRouteImport;
+      parentRoute: typeof DashboardRoute;
+    };
   }
 }
 
 interface DashboardRouteChildren {
   DashboardSplatRoute: typeof DashboardSplatRoute;
+  DashboardItemsRoute: typeof DashboardItemsRoute;
+  DashboardSettingsRoute: typeof DashboardSettingsRoute;
   DashboardIndexRoute: typeof DashboardIndexRoute;
 }
 
 const DashboardRouteChildren: DashboardRouteChildren = {
   DashboardSplatRoute: DashboardSplatRoute,
+  DashboardItemsRoute: DashboardItemsRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 };
 
@@ -153,6 +225,7 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(DashboardRout
 const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRouteWithChildren,
   ForgotPasswordRoute: ForgotPasswordRoute,
+  OnboardingRoute: OnboardingRoute,
   SignInRoute: SignInRoute,
   SignUpRoute: SignUpRoute,
 };

@@ -10,6 +10,8 @@ import {
   sidebarEase,
   sidebarMotion,
   useCompactSidebar,
+  useIconOnlyNav,
+  useIsDesktop,
   useSidebarControlWidth,
 } from "./sidebar-motion";
 
@@ -74,7 +76,7 @@ const labelText = style({
 const NavLink = motion.create(RouterLink);
 
 function NavLabel({ title }: { title: string }) {
-  const compact = useCompactSidebar();
+  const compact = useIconOnlyNav();
   const reduceMotion = useReducedMotion();
 
   return (
@@ -107,12 +109,12 @@ function isRouteActive(pathname: string, route: NavRoute) {
 
 function NavLeaf({ route, active }: { route: NavRoute; active: boolean }) {
   const Icon = route.icon;
-  const compact = useCompactSidebar();
+  const iconOnly = useIconOnlyNav();
   const width = useSidebarControlWidth();
   const reduceMotion = useReducedMotion();
 
   return (
-    <TooltipTrigger delay={300} placement="end" isDisabled={!compact}>
+    <TooltipTrigger delay={300} placement="bottom" isDisabled={!iconOnly}>
       <NavLink
         to={route.link}
         className={`${navRow} ${active ? navButtonActive : ""}`}
@@ -144,10 +146,10 @@ function NavGroup({
 }) {
   const Icon = route.icon;
   const active = isRouteActive(pathname, route);
-  const compact = useCompactSidebar();
+  const iconOnly = useIconOnlyNav();
   const width = useSidebarControlWidth();
   const reduceMotion = useReducedMotion();
-  const showSubs = open && !compact;
+  const showSubs = open && !iconOnly;
 
   return (
     <div
@@ -159,7 +161,7 @@ function NavGroup({
         width: "full",
       })}
     >
-      <TooltipTrigger delay={300} placement="end" isDisabled={!compact}>
+      <TooltipTrigger delay={300} placement="bottom" isDisabled={!iconOnly}>
         <motion.button
           type="button"
           className={`${navRow} ${active || open ? navButtonActive : ""}`}
@@ -176,8 +178,8 @@ function NavGroup({
           <motion.span
             initial={false}
             animate={{
-              opacity: compact ? 0 : 1,
-              width: compact ? 0 : "auto",
+              opacity: iconOnly ? 0 : 1,
+              width: iconOnly ? 0 : "auto",
             }}
             transition={sidebarMotion(reduceMotion)}
             style={{ display: "flex", overflow: "hidden", flexShrink: 0 }}
@@ -226,8 +228,26 @@ function NavGroup({
   );
 }
 
+const navColumn = style({
+  display: "flex",
+  flexDirection: "column",
+  alignItems: "center",
+  gap: 4,
+  width: "full",
+});
+
+const navBar = style({
+  display: "flex",
+  flexDirection: "row",
+  alignItems: "center",
+  gap: 4,
+  flexGrow: 1,
+  minWidth: 0,
+});
+
 export function DashboardNavigation() {
   const compact = useCompactSidebar();
+  const isDesktop = useIsDesktop();
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const [openId, setOpenId] = useState<string | null>(() => {
     const match = dashboardRoutes.find((route) => route.subs && isRouteActive(pathname, route));
@@ -235,16 +255,7 @@ export function DashboardNavigation() {
   });
 
   return (
-    <nav
-      aria-label="Dashboard"
-      className={style({
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 4,
-        width: "full",
-      })}
-    >
+    <nav aria-label="Dashboard" className={isDesktop ? navColumn : navBar}>
       {dashboardRoutes.map((route) => {
         const hasSubs = Boolean(route.subs?.length);
         if (!hasSubs) {

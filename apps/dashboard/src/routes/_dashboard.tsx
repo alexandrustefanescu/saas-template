@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { Outlet, createFileRoute } from "@tanstack/react-router";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
-import { DashboardSidebar } from "#/features/dashboard/dashboard-sidebar";
-import { SidebarProvider } from "#/features/dashboard/sidebar-context";
+import { DashboardSidebar } from "#/features/shell/dashboard-sidebar";
+import { SidebarProvider } from "#/features/shell/sidebar-context";
+import { requireOrganisation } from "#/lib/auth-client";
 
 export const Route = createFileRoute("/_dashboard")({
+  beforeLoad: requireOrganisation,
   component: DashboardLayout,
 });
 
@@ -19,11 +21,11 @@ function DashboardLayout() {
       }}
     >
       <div
-        className={style({
+        className={`dashboard-shell ${style({
           display: "flex",
           flexDirection: {
             default: "column",
-            md: "row",
+            lg: "row",
           },
           alignItems: "stretch",
           height: "screen",
@@ -31,7 +33,7 @@ function DashboardLayout() {
           backgroundColor: "gray-100",
           boxSizing: "border-box",
           overflow: "hidden",
-        })}
+        })}`}
       >
         <DashboardSidebar />
         <main
@@ -47,13 +49,13 @@ function DashboardLayout() {
             },
             marginTop: {
               default: 0,
-              md: 12,
+              lg: 12,
             },
             padding: 8,
             borderRadius: "xl",
             backgroundColor: "white",
             boxShadow: "elevated",
-            overflow: "auto",
+            overflow: "hidden",
           })}
         >
           <Outlet />

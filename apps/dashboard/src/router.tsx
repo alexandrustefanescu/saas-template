@@ -1,4 +1,5 @@
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
+import { PageSkeleton } from "#/features/shell/page-skeleton";
 import { routeTree } from "./routeTree.gen";
 
 export function getRouter() {
@@ -7,6 +8,8 @@ export function getRouter() {
     scrollRestoration: true,
     defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
+    defaultPendingMs: 200,
+    defaultPendingComponent: PageSkeleton,
   });
 
   return router;

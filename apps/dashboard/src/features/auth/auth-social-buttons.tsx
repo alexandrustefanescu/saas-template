@@ -1,10 +1,9 @@
-import { Badge } from "@react-spectrum/s2/Badge";
 import { Text } from "@react-spectrum/s2/Button";
 import { Button } from "#/components/button";
-import Email from "@react-spectrum/s2/icons/Email";
 import { ToastQueue } from "@react-spectrum/s2/Toast";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { motion, useReducedMotion } from "motion/react";
+import { authClient } from "#/lib/auth-client";
 import { spectrumStyles } from "#/spectrum-styles";
 
 function GoogleMark() {
@@ -41,16 +40,12 @@ function GoogleMark() {
   );
 }
 
-type Props = {
-  emailOnlyLabel?: string;
-};
-
 const fullButton = style({
   width: "full",
   alignItems: "center",
 });
 
-export function AuthSocialButtons({ emailOnlyLabel = "Email Only" }: Props) {
+export function AuthSocialButtons() {
   const reduceMotion = useReducedMotion();
 
   return (
@@ -70,43 +65,7 @@ export function AuthSocialButtons({ emailOnlyLabel = "Email Only" }: Props) {
       }}
     >
       <motion.div
-        className={style({ position: "relative", width: "full" })}
-        variants={{
-          hidden: { opacity: 0, y: 10 },
-          visible: {
-            opacity: 1,
-            y: 0,
-            transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] },
-          },
-        }}
-      >
-        <Button
-          variant="secondary"
-          size="L"
-          styles={spectrumStyles(fullButton)}
-          onPress={() =>
-            ToastQueue.info("Google sign-in is coming soon.", {
-              timeout: 4000,
-            })
-          }
-        >
-          <GoogleMark />
-          <Text>Google</Text>
-        </Button>
-        <Badge
-          variant="neutral"
-          size="S"
-          styles={style({
-            position: "absolute",
-            top: -8,
-            insetEnd: -4,
-          })}
-        >
-          Last used
-        </Badge>
-      </motion.div>
-
-      <motion.div
+        className={style({ width: "full" })}
         variants={{
           hidden: { opacity: 0, y: 10 },
           visible: {
@@ -121,13 +80,22 @@ export function AuthSocialButtons({ emailOnlyLabel = "Email Only" }: Props) {
           size="L"
           styles={spectrumStyles(fullButton)}
           onPress={() => {
-            document
-              .querySelector<HTMLInputElement>('input[type="email"], input[autocomplete="email"]')
-              ?.focus();
+            void authClient.signIn
+              .social({
+                provider: "google",
+                callbackURL: `${window.location.origin}/`,
+              })
+              .then(({ error }) => {
+                if (error) {
+                  ToastQueue.negative(error.message || "Google sign-in failed.", {
+                    timeout: 5000,
+                  });
+                }
+              });
           }}
         >
-          <Email />
-          <Text>{emailOnlyLabel}</Text>
+          <GoogleMark />
+          <Text>Google</Text>
         </Button>
       </motion.div>
     </motion.div>

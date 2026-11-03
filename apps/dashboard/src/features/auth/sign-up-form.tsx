@@ -39,7 +39,7 @@ export function SignUpForm({ onSubmit }: Props) {
 
   return (
     <div className={style({ display: "flex", flexDirection: "column", gap: 20 })}>
-      <AuthSocialButtons emailOnlyLabel="Email Only" />
+      <AuthSocialButtons />
       <AuthOrDivider />
 
       <Form

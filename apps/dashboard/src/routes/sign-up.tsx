@@ -1,15 +1,19 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Link } from "@react-spectrum/s2/Link";
 import { ToastQueue } from "@react-spectrum/s2/Toast";
 import { AuthPage } from "#/components/auth-page";
 import { Body } from "#/components/typography";
 import { SignUpForm } from "#/features/auth/sign-up-form";
+import { accountNameFromEmail, authClient, redirectIfSignedIn } from "#/lib/auth-client";
 
 export const Route = createFileRoute("/sign-up")({
+  beforeLoad: redirectIfSignedIn,
   component: SignUpPage,
 });
 
 function SignUpPage() {
+  const navigate = useNavigate();
+
   return (
     <AuthPage
       title="Create account"
@@ -24,10 +28,19 @@ function SignUpPage() {
     >
       <SignUpForm
         onSubmit={async (value) => {
-          await new Promise((resolve) => setTimeout(resolve, 800));
-          ToastQueue.positive(`Account created for ${value.email}`, {
-            timeout: 5000,
+          const { error } = await authClient.signUp.email({
+            name: accountNameFromEmail(value.email),
+            email: value.email,
+            password: value.password,
           });
+          if (error) {
+            ToastQueue.negative(error.message || "Could not create the account.", {
+              timeout: 5000,
+            });
+            return;
+          }
+          ToastQueue.positive(`Account created for ${value.email}`, { timeout: 5000 });
+          await navigate({ to: "/onboarding" });
         }}
       />
     </AuthPage>

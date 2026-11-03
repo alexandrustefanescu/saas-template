@@ -13,20 +13,31 @@ export function sidebarMotion(reduceMotion: boolean | null) {
   return { duration: 0.48, ease: sidebarEase };
 }
 
-export function useIsDesktop() {
-  const [isDesktop, setIsDesktop] = useState(() =>
-    typeof window !== "undefined" ? window.matchMedia("(min-width: 48rem)").matches : false,
+const RAIL_QUERY = "(min-width: 64rem)";
+const PHONE_QUERY = "(max-width: 40rem)";
+
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia(query).matches : false,
   );
 
   useEffect(() => {
-    const media = window.matchMedia("(min-width: 48rem)");
-    const update = () => setIsDesktop(media.matches);
+    const media = window.matchMedia(query);
+    const update = () => setMatches(media.matches);
     update();
     media.addEventListener("change", update);
     return () => media.removeEventListener("change", update);
-  }, []);
+  }, [query]);
 
-  return isDesktop;
+  return matches;
+}
+
+export function useIsDesktop() {
+  return useMediaQuery(RAIL_QUERY);
+}
+
+export function useIsPhone() {
+  return useMediaQuery(PHONE_QUERY);
 }
 
 export function useCompactSidebar() {
@@ -35,10 +46,16 @@ export function useCompactSidebar() {
   return collapsed && isDesktop;
 }
 
-export function useSidebarControlWidth() {
+export function useIconOnlyNav() {
   const compact = useCompactSidebar();
+  const phone = useIsPhone();
+  return compact || phone;
+}
+
+export function useSidebarControlWidth() {
+  const iconOnly = useIconOnlyNav();
   const isDesktop = useIsDesktop();
-  if (compact) return SIDEBAR_ITEM_WIDTH;
+  if (iconOnly) return SIDEBAR_ITEM_WIDTH;
   if (isDesktop) return SIDEBAR_CONTENT_WIDTH;
-  return "100%" as const;
+  return "auto" as const;
 }

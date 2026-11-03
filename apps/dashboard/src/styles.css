@@ -138,12 +138,43 @@
     inset 0 1px 1px rgba(0, 0, 0, 0.28) !important;
 }
 
+.skeuo-btn--negative {
+  border-color: rgba(255, 255, 255, 0.12) !important;
+  border-top-color: rgba(255, 255, 255, 0.28) !important;
+  border-bottom-color: rgba(80, 0, 0, 0.55) !important;
+  background-color: #b91c1c !important;
+  background-image: linear-gradient(180deg, #ef4444 0%, #dc2626 46%, #b91c1c 100%) !important;
+  color: #fff !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -8px 12px rgba(0, 0, 0, 0.22),
+    0 1px 1px rgba(0, 0, 0, 0.06),
+    0 8px 16px rgba(185, 28, 28, 0.22) !important;
+}
+
+.skeuo-btn--negative[data-hovered],
+.skeuo-btn--negative:hover:not([data-disabled]):not(:disabled) {
+  background-color: #991b1b !important;
+  background-image: linear-gradient(180deg, #f87171 0%, #ef4444 46%, #dc2626 100%) !important;
+}
+
+.skeuo-btn--negative[data-pressed],
+.skeuo-btn--negative:active:not([data-disabled]):not(:disabled) {
+  transform: translateY(1px);
+  background-color: #7f1d1d !important;
+  background-image: linear-gradient(180deg, #b91c1c 0%, #991b1b 100%) !important;
+  box-shadow:
+    inset 0 3px 8px rgba(0, 0, 0, 0.35),
+    inset 0 1px 1px rgba(0, 0, 0, 0.24) !important;
+}
+
 .skeuo-btn[data-disabled],
 .skeuo-btn:disabled {
   opacity: 0.5;
 }
 
-.team-switcher {
+.organisation-switcher {
   display: flex !important;
   align-items: center !important;
   justify-content: flex-start !important;
@@ -160,7 +191,16 @@
   border-radius: 10px !important;
 }
 
-.team-switcher svg {
+.dashboard-shell {
+  height: 100dvh;
+  max-height: 100dvh;
+}
+
+.notifications-panel {
+  width: min(320px, calc(100vw - 24px));
+}
+
+.organisation-switcher svg {
   width: 16px;
   height: 16px;
   flex-shrink: 0;
