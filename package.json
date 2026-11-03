@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "ready": "vp check && vp run -r test && vp run -r build",
-    "dev": "vp run --parallel dashboard#dev api#dev",
-    "dev:dashboard": "vp run dashboard#dev",
-    "dev:api": "vp run api#dev",
+    "dev": "vp run --parallel -F dashboard -F api --log labeled dev",
+    "dev:dashboard": "vp run -F dashboard dev",
+    "dev:api": "vp run -F api dev",
     "prepare": "vp config"
   },
   "devDependencies": {

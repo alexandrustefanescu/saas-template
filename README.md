@@ -1,6 +1,6 @@
-# Vite+ Monorepo Starter
+# SaaS template monorepo
 
-A starter for creating a Vite+ monorepo.
+Vite+ workspace with a React dashboard and a Rust Axum API. The product surface includes organisations (create/switch/invite), onboarding, items, notifications, and webhooks — not only an auth shell.
 
 ## Packages
 
@@ -8,7 +8,8 @@ A starter for creating a Vite+ monorepo.
 | ----------- | ---------------- | ------------------ |
 | `dashboard` | `apps/dashboard` | React + Vite       |
 | `api`       | `apps/api`       | Rust (Axum + SQLx) |
-| `utils`     | `packages/utils` | TypeScript library |
+
+`pnpm-workspace.yaml` also globs `packages/*` and `tools/*`. `packages/` is reserved for future shared TypeScript libraries (e.g. OpenAPI-derived client types); there is no shared package yet. `tools/` is not present on disk yet (same placeholder pattern).
 
 ## Development
 
@@ -33,7 +34,8 @@ vp run -r build
 - Run dashboard + API together:
 
 ```bash
-vp run dev
+pnpm dev
+# or: vp run --parallel -F dashboard -F api --log labeled dev
 ```
 
 - Or individually:
@@ -43,4 +45,5 @@ pnpm dev:dashboard
 pnpm dev:api
 ```
 
-API setup (Postgres + env): see [`apps/api/README.md`](apps/api/README.md).
+API setup (Postgres + env): see [`apps/api/README.md`](apps/api/README.md).  
+Dashboard architecture: see [`apps/dashboard/README.md`](apps/dashboard/README.md).
