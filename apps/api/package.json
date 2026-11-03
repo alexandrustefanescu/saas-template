@@ -1,0 +1,12 @@
+{
+  "name": "api",
+  "private": true,
+  "description": "Axum + SQLx HTTP API with even-better-auth",
+  "scripts": {
+    "dev": "cargo run",
+    "build": "cargo build --release",
+    "test": "cargo test",
+    "check": "cargo check",
+    "clippy": "cargo clippy -- -D warnings"
+  }
+}
