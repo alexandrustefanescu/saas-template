@@ -1,0 +1,178 @@
+/*
+  Spectrum S2 owns component chrome. Skip Tailwind Preflight — it resets
+  buttons/inputs in `@layer base` and fights S2's `_` layer when injection
+  order registers `_` first (common with Vite HMR style tags).
+*/
+@layer theme, base, components, utilities, _;
+
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+@import "@react-spectrum/s2/page.css";
+
+/* Poppins — app sans; Spectrum picks this up via --s2-font-family-sans */
+@import "@fontsource/poppins/400.css";
+@import "@fontsource/poppins/500.css";
+@import "@fontsource/poppins/600.css";
+@import "@fontsource/poppins/700.css";
+
+@theme {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+@layer base {
+  :root,
+  html[data-color-scheme="light"] {
+    --s2-font-family-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+    /* Always use Spectrum's large scale (bigger controls / type). */
+    --s2-scale: 1.25;
+    --s2-font-size-base: 17;
+    color-scheme: light;
+  }
+
+  html,
+  body,
+  #app {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--s2-font-family-sans);
+    background: #fff;
+    color: #111;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+}
+
+/* Two skeuomorphic button finishes: black and white */
+.skeuo-btn {
+  position: relative;
+  isolation: isolate;
+  border-radius: 999px !important;
+  border-width: 1px !important;
+  border-style: solid !important;
+  text-shadow: none;
+  transition:
+    box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    background-color 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1) !important;
+}
+
+.skeuo-btn--white,
+.skeuo-btn[data-testid="rsp-AlertDialog-cancelButton"],
+.skeuo-btn[data-testid="rsp-AlertDialog-secondaryButton"] {
+  border-color: rgba(0, 0, 0, 0.08) !important;
+  border-top-color: #fff !important;
+  border-bottom-color: rgba(0, 0, 0, 0.12) !important;
+  background-color: #f3f3f3 !important;
+  background-image: linear-gradient(180deg, #fff 0%, #f5f5f5 58%, #e9e9e9 100%) !important;
+  color: #111 !important;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 1px 1px rgba(0, 0, 0, 0.04),
+    0 3px 8px rgba(0, 0, 0, 0.06) !important;
+}
+
+.skeuo-btn--white[data-hovered],
+.skeuo-btn--white:hover:not([data-disabled]):not(:disabled),
+.skeuo-btn[data-testid="rsp-AlertDialog-cancelButton"]:hover,
+.skeuo-btn[data-testid="rsp-AlertDialog-secondaryButton"]:hover {
+  background-image: linear-gradient(180deg, #fff 0%, #fafafa 58%, #efefef 100%) !important;
+  box-shadow:
+    inset 0 1px 0 #fff,
+    0 2px 3px rgba(0, 0, 0, 0.05),
+    0 8px 16px rgba(0, 0, 0, 0.07) !important;
+}
+
+.skeuo-btn--white[data-pressed],
+.skeuo-btn--white:active:not([data-disabled]):not(:disabled),
+.skeuo-btn[data-testid="rsp-AlertDialog-cancelButton"]:active,
+.skeuo-btn[data-testid="rsp-AlertDialog-secondaryButton"]:active {
+  transform: translateY(1px);
+  border-top-color: rgba(0, 0, 0, 0.08) !important;
+  background-color: #e7e7e7 !important;
+  background-image: linear-gradient(180deg, #e4e4e4 0%, #f1f1f1 100%) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.skeuo-btn--black,
+.skeuo-btn[data-testid="rsp-AlertDialog-confirmButton"] {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  border-top-color: rgba(255, 255, 255, 0.26) !important;
+  border-bottom-color: rgba(0, 0, 0, 0.55) !important;
+  background-color: #141414 !important;
+  background-image: linear-gradient(180deg, #3a3a3a 0%, #1c1c1c 46%, #111 100%) !important;
+  color: #fff !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -8px 12px rgba(0, 0, 0, 0.28),
+    0 1px 1px rgba(0, 0, 0, 0.06),
+    0 8px 16px rgba(0, 0, 0, 0.14) !important;
+}
+
+.skeuo-btn--black[data-hovered],
+.skeuo-btn--black:hover:not([data-disabled]):not(:disabled),
+.skeuo-btn[data-testid="rsp-AlertDialog-confirmButton"]:hover {
+  background-color: #1a1a1a !important;
+  background-image: linear-gradient(180deg, #454545 0%, #242424 46%, #161616 100%) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -6px 10px rgba(0, 0, 0, 0.22),
+    0 2px 4px rgba(0, 0, 0, 0.08),
+    0 10px 20px rgba(0, 0, 0, 0.16) !important;
+}
+
+.skeuo-btn--black[data-pressed],
+.skeuo-btn--black:active:not([data-disabled]):not(:disabled),
+.skeuo-btn[data-testid="rsp-AlertDialog-confirmButton"]:active {
+  transform: translateY(1px);
+  background-color: #0d0d0d !important;
+  background-image: linear-gradient(180deg, #1a1a1a 0%, #111 100%) !important;
+  box-shadow:
+    inset 0 3px 8px rgba(0, 0, 0, 0.42),
+    inset 0 1px 1px rgba(0, 0, 0, 0.28) !important;
+}
+
+.skeuo-btn[data-disabled],
+.skeuo-btn:disabled {
+  opacity: 0.5;
+}
+
+.team-switcher {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  gap: 8px;
+  padding: 4px 8px 4px 4px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+  grid-template-columns: none !important;
+  grid-template-areas: none !important;
+  /* Match nav rows (Spectrum lg). The shared button style is a pill. */
+  border-radius: 10px !important;
+}
+
+.team-switcher svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.skeuo-btn[data-focus-visible] {
+  outline: 2px solid #111 !important;
+  outline-offset: 3px !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeuo-btn {
+    transition: none !important;
+  }
+}
