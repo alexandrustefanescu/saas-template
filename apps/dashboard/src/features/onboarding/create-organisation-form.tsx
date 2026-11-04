@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Form } from "@react-spectrum/s2/Form";
 import { TextField } from "@react-spectrum/s2/TextField";
 import { ToastQueue } from "@react-spectrum/s2/Toast";
@@ -6,6 +7,7 @@ import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { Button } from "#/components/button";
 import { authClient, slugifyOrganisationName } from "#/lib/auth-client";
 import { spectrumStyles } from "#/spectrum-styles";
+import { invalidateOrgScopedQueries } from "#/queries/invalidate-org";
 
 type CreatedOrganisation = {
   id: string;
@@ -19,6 +21,7 @@ type Props = {
 };
 
 export function CreateOrganisationForm({ onCreated, submitLabel = "Continue" }: Props) {
+  const queryClient = useQueryClient();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [slugTouched, setSlugTouched] = useState(false);
@@ -76,6 +79,7 @@ export function CreateOrganisationForm({ onCreated, submitLabel = "Continue" }: 
               return;
             }
 
+            invalidateOrgScopedQueries(queryClient);
             await onCreated(created);
           } finally {
             setCreating(false);

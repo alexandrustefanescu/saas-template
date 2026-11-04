@@ -1,4 +1,3 @@
-import { useCallback, useEffect, useState } from "react";
 import { ActionButton } from "@react-spectrum/s2/ActionButton";
 import Bell from "@react-spectrum/s2/icons/Bell";
 import { DialogTrigger, Popover } from "@react-spectrum/s2/Popover";
@@ -6,12 +5,12 @@ import { ToastQueue } from "@react-spectrum/s2/Toast";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { useIsDesktop } from "#/features/shell/sidebar-motion";
 import { ApiError } from "#/lib/api/client";
+import type { Notification } from "#/lib/api/notifications";
 import {
-  listNotifications,
-  markAllNotificationsRead,
-  markNotificationRead,
-  type Notification,
-} from "#/lib/api/notifications";
+  useMarkAllNotificationsReadMutation,
+  useMarkNotificationReadMutation,
+  useNotificationsQuery,
+} from "#/queries/notifications";
 
 const panel = style({
   display: "flex",
@@ -118,61 +117,33 @@ function kindFallback(kind: string) {
 
 export function NotificationsPopover() {
   const isDesktop = useIsDesktop();
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [open, setOpen] = useState(false);
+  const { data, isPending, isError, error, isFetching, refetch } = useNotificationsQuery();
+  const markRead = useMarkNotificationReadMutation();
+  const markAll = useMarkAllNotificationsReadMutation();
 
+  const notifications = data ?? [];
   const unreadCount = notifications.filter((notification) => notification.unread).length;
-
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      const rows = await listNotifications();
-      setNotifications(rows);
-    } catch (error) {
-      if (error instanceof ApiError && error.status === 400) {
-        setNotifications([]);
-        return;
-      }
-      ToastQueue.negative(
-        error instanceof ApiError ? error.message : "Could not load notifications.",
-        { timeout: 5000 },
-      );
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  useEffect(() => {
-    if (open) void refresh();
-  }, [open, refresh]);
+  const loading = isPending || (isFetching && notifications.length === 0);
+  const backgroundBusy = isFetching && !isPending;
 
   async function markOne(id: string) {
     try {
-      await markNotificationRead(id);
-      setNotifications((rows) =>
-        rows.map((row) => (row.id === id ? { ...row, unread: false } : row)),
-      );
-    } catch (error) {
+      await markRead.mutateAsync(id);
+    } catch (err) {
       ToastQueue.negative(
-        error instanceof ApiError ? error.message : "Could not mark notification as read.",
+        err instanceof ApiError ? err.message : "Could not mark notification as read.",
         { timeout: 5000 },
       );
     }
   }
 
-  async function markAll() {
+  async function markAllRead() {
     try {
-      await markAllNotificationsRead();
-      setNotifications((rows) => rows.map((row) => ({ ...row, unread: false })));
+      await markAll.mutateAsync();
       ToastQueue.positive("All notifications marked as read.", { timeout: 3000 });
-    } catch (error) {
+    } catch (err) {
       ToastQueue.negative(
-        error instanceof ApiError ? error.message : "Could not mark notifications as read.",
+        err instanceof ApiError ? err.message : "Could not mark notifications as read.",
         { timeout: 5000 },
       );
     }
@@ -181,7 +152,7 @@ export function NotificationsPopover() {
   return (
     <DialogTrigger
       onOpenChange={(isOpen) => {
-        setOpen(isOpen);
+        if (isOpen) void refetch();
       }}
     >
       <ActionButton aria-label="Open notifications" isQuiet>
@@ -193,14 +164,26 @@ export function NotificationsPopover() {
         </span>
       </ActionButton>
       <Popover hideArrow placement={isDesktop ? "right top" : "bottom end"} offset={12}>
-        <div className={`notifications-panel ${panel}`} data-testid="notifications-panel">
+        <div
+          className={`notifications-panel ${panel}`}
+          data-testid="notifications-panel"
+          style={{ opacity: backgroundBusy ? 0.85 : 1 }}
+        >
           <div className={heading}>Notifications</div>
-          {loading && notifications.length === 0 ? (
+          {isError ? (
+            <div className={style({ font: "ui-sm", color: "gray-700", paddingX: 8, paddingY: 8 })}>
+              {error instanceof Error ? error.message : "Could not load notifications."}
+              <button type="button" className={row} onClick={() => void refetch()}>
+                Retry
+              </button>
+            </div>
+          ) : null}
+          {loading ? (
             <div className={style({ font: "ui-sm", color: "gray-700", paddingX: 8, paddingY: 8 })}>
               Loading…
             </div>
           ) : null}
-          {!loading && notifications.length === 0 ? (
+          {!loading && !isError && notifications.length === 0 ? (
             <div className={style({ font: "ui-sm", color: "gray-700", paddingX: 8, paddingY: 8 })}>
               No notifications yet.
             </div>
@@ -225,7 +208,7 @@ export function NotificationsPopover() {
             </button>
           ))}
           {notifications.some((notification) => notification.unread) ? (
-            <button type="button" className={row} onClick={() => void markAll()}>
+            <button type="button" className={row} onClick={() => void markAllRead()}>
               <span className={style({ font: "ui-sm", color: "gray-700" })}>Mark all as read</span>
             </button>
           ) : null}

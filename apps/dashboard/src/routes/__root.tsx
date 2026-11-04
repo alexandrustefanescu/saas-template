@@ -1,6 +1,6 @@
 import {
   Outlet,
-  createRootRoute,
+  createRootRouteWithContext,
   useRouter,
   type NavigateOptions,
   type ToOptions,
@@ -12,9 +12,11 @@ import { LinkButtonContext } from "@react-spectrum/s2/LinkButton";
 import { Provider } from "@react-spectrum/s2/Provider";
 import { ToastContainer } from "@react-spectrum/s2/Toast";
 import { ToggleButtonContext } from "@react-spectrum/s2/ToggleButton";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { ReactNode } from "react";
+import type { RouterContext } from "#/router";
 
 import "../styles.css";
 
@@ -25,7 +27,7 @@ declare module "@react-spectrum/s2/Provider" {
   }
 }
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<RouterContext>()({
   component: RootComponent,
 });
 
@@ -66,6 +68,7 @@ function RootComponent() {
         <SkeuomorphicButtons>
           <ToastContainer placement="bottom" />
           <Outlet />
+          <ReactQueryDevtools buttonPosition="bottom-left" initialIsOpen={false} />
           <TanStackDevtools
             config={{
               position: "bottom-right",

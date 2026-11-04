@@ -99,7 +99,8 @@ flowchart TB
   onboarding -->|session then create org| shell
   forms --> bac[authClient]
   pages --> bac
-  pages --> apiClient["lib/api/*"]
+  pages --> queryLayer["src/queries/*"]
+  queryLayer --> apiClient["lib/api/*"]
   bac --> authHTTP["/api/auth"]
   apiClient --> v1HTTP["/v1"]
 ```
@@ -274,11 +275,16 @@ Wire protocol details, roles, and Bearer tokens: **[API authentication docs](../
 
 ---
 
-## 6. API client
+## 6. API client & server state
 
-Domain modules under `src/lib/api/` — shared transport in `client.ts`, resources split by domain.
+**TanStack Query** is the server-state layer (`src/queries/*`). `lib/api/*` is transport/types only — do not mirror `/v1` lists into ad-hoc `useState` or a global client store.
 
 ```ts
+// lib/query-client.ts — shared QueryClient (staleTime ~30s, no retry on 4xx)
+// queries/keys.ts — queryKeys + orgScopedQueryKeys
+// queries/{account,items,webhooks,notifications,organisations}.ts
+// queries/invalidate-org.ts — invalidate items/webhooks/notifications (+ me/orgs) on set-active
+
 // lib/api/client.ts
 api<T>(path, init?)   // credentials + JSON; prefers body.error, then body.message
 ApiError              // { status, message } on non-OK
@@ -298,10 +304,11 @@ getMe()               // GET /v1/me → MeResponse
 
 **Patterns**
 
-- Prefer **route loaders** for page data (home, items, settings).
-- Prefer **authClient** for identity / organisation mutations.
-- No React Query yet — add when caching/invalidation complexity appears.
-- Add a new domain module under `lib/api/` for new `/v1/*` resources; keep error mapping consistent (`error` then `message`).
+- Route loaders call `context.queryClient.ensureQueryData(...)`; features read via `useQuery` / mutation hooks so loaders and UI share one cache.
+- Prefer **authClient** for identity / organisation mutations; wrap org lists thinly in Query; call `invalidateOrgScopedQueries` after set-active / create-org.
+- Optimistic updates: item delete, notification mark-read / mark-all.
+- UI states: loading (`isPending` / route skeleton), error + retry, empty, background refetch (`isFetching && !isPending`).
+- Add a new domain module under `lib/api/` for new `/v1/*` resources, then a matching `queries/<domain>.ts`; keep error mapping consistent (`error` then `message`).
 
 ---
 
@@ -429,7 +436,7 @@ E2E mocks cover `**/api/auth/**` (including `/organization/*`), `**/v1/me`, item
 
 1. Implement on the API first (OpenAPI + ownership rules).
 2. Add a typed helper in the matching `lib/api/<domain>.ts` module (or a new one).
-3. Prefer loaders over ad-hoc `useEffect` fetches.
+3. Add `queries/<domain>.ts` (queryKeys + options + hooks); hydrate via `ensureQueryData` in the route loader.
 
 ---
 
@@ -450,7 +457,6 @@ E2E mocks cover `**/api/auth/**` (including `/organization/*`), `**/v1/me`, item
 - Home is a welcome hub (further product widgets are intentional add-ons)
 - Notifications bell loads the organisation inbox (`/v1/notifications`); unread is per user
 - Async email checks are mocked, not wired to the API
-- No global React Query cache / optimistic mutations yet
 - Google OAuth depends entirely on API + Google Cloud configuration
 
 ---

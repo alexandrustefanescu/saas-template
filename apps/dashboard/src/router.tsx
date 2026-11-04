@@ -1,10 +1,16 @@
 import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { PageSkeleton } from "#/features/shell/page-skeleton";
+import type { AppQueryClient } from "#/lib/query-client";
 import { routeTree } from "./routeTree.gen";
 
-export function getRouter() {
+export type RouterContext = {
+  queryClient: AppQueryClient;
+};
+
+export function getRouter(queryClient: AppQueryClient) {
   const router = createTanStackRouter({
     routeTree,
+    context: { queryClient },
     scrollRestoration: true,
     defaultPreload: "intent",
     defaultPreloadStaleTime: 0,

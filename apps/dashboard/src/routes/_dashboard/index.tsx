@@ -4,14 +4,14 @@ import { Button } from "#/components/button";
 import { Body, PageTitle } from "#/components/typography";
 import { HomePage } from "#/features/home/home-page";
 import { HomeSkeleton } from "#/features/home/home-skeleton";
-import { getMe } from "#/lib/api/account";
+import { meQueryOptions } from "#/queries/account";
 
 export const Route = createFileRoute("/_dashboard/")({
   validateSearch: (search: Record<string, unknown>): { welcome?: boolean } => {
     const welcome = search.welcome === true || search.welcome === "true" || search.welcome === "1";
     return welcome ? { welcome: true } : {};
   },
-  loader: () => getMe(),
+  loader: ({ context }) => context.queryClient.ensureQueryData(meQueryOptions()),
   pendingMs: 0,
   pendingComponent: HomeSkeleton,
   component: Home,
@@ -19,9 +19,8 @@ export const Route = createFileRoute("/_dashboard/")({
 });
 
 function Home() {
-  const { user } = Route.useLoaderData();
   const { welcome } = Route.useSearch();
-  return <HomePage user={user} justOnboarded={Boolean(welcome)} />;
+  return <HomePage justOnboarded={Boolean(welcome)} />;
 }
 
 function HomeError({ error }: ErrorComponentProps) {

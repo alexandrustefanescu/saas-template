@@ -3,7 +3,6 @@ import { Tab, TabList, TabPanel, Tabs } from "@react-spectrum/s2/Tabs";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { OrganisationPanel } from "#/features/organisations/organisation-panel";
 import type { AccountUser } from "#/lib/api/account";
-import type { WebhookEndpoint } from "#/lib/api/webhooks";
 import { spectrumStyles } from "#/spectrum-styles";
 import { AccountPanel } from "./account-panel";
 import { EmailPanel } from "./email-panel";
@@ -40,11 +39,10 @@ export type SettingsCategory =
 
 type Props = {
   user: AccountUser;
-  webhooks: WebhookEndpoint[];
   defaultCategory?: SettingsCategory;
 };
 
-export function SettingsPanel({ user, webhooks, defaultCategory = "profile" }: Props) {
+export function SettingsPanel({ user, defaultCategory = "profile" }: Props) {
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
 
@@ -101,7 +99,7 @@ export function SettingsPanel({ user, webhooks, defaultCategory = "profile" }: P
         </TabPanel>
         <TabPanel id="webhooks">
           <div className={panel}>
-            <WebhooksPanel initialEndpoints={webhooks} />
+            <WebhooksPanel />
           </div>
         </TabPanel>
         <TabPanel id="account">

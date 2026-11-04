@@ -6,10 +6,9 @@ import { PageBreadcrumbs } from "#/components/page-breadcrumbs";
 import { Body, PageTitle } from "#/components/typography";
 import { SettingsPanel, type SettingsCategory } from "#/features/settings/settings-panel";
 import { SettingsSkeleton } from "#/features/settings/settings-skeleton";
-import { getMe } from "#/lib/api/account";
-import { ApiError } from "#/lib/api/client";
-import { listWebhooks, type WebhookEndpoint } from "#/lib/api/webhooks";
 import { authClient } from "#/lib/auth-client";
+import { meQueryOptions } from "#/queries/account";
+import { webhooksQueryOptions } from "#/queries/webhooks";
 
 const page = style({
   display: "flex",
@@ -53,18 +52,10 @@ export const Route = createFileRoute("/_dashboard/settings")({
     const category = parseCategory(search.category);
     return category ? { category } : {};
   },
-  loader: async () => {
-    const account = await getMe();
-    let webhooks: WebhookEndpoint[] = [];
-    try {
-      webhooks = await listWebhooks();
-    } catch (error) {
-      // Webhooks require an active organisation; Settings still loads.
-      if (!(error instanceof ApiError && error.status === 400)) {
-        throw error;
-      }
-    }
-    return { account, webhooks };
+  loader: async ({ context }) => {
+    const account = await context.queryClient.ensureQueryData(meQueryOptions());
+    await context.queryClient.ensureQueryData(webhooksQueryOptions());
+    return { account };
   },
   pendingMs: 0,
   pendingComponent: SettingsSkeleton,
@@ -73,7 +64,7 @@ export const Route = createFileRoute("/_dashboard/settings")({
 });
 
 function SettingsPage() {
-  const { account, webhooks } = Route.useLoaderData();
+  const { account } = Route.useLoaderData();
   const { category } = Route.useSearch();
   const navigate = useNavigate();
 
@@ -106,11 +97,7 @@ function SettingsPage() {
         </Button>
       </div>
 
-      <SettingsPanel
-        user={account.user}
-        webhooks={webhooks}
-        defaultCategory={category ?? "profile"}
-      />
+      <SettingsPanel user={account.user} defaultCategory={category ?? "profile"} />
     </section>
   );
 }

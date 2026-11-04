@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "@tanstack/react-router";
 import { ActionButton } from "@react-spectrum/s2/ActionButton";
 import {
@@ -30,12 +31,8 @@ import {
   useIconOnlyNav,
   useIsDesktop,
 } from "#/features/shell/sidebar-motion";
-
-type Organisation = {
-  id: string;
-  name: string;
-  slug: string;
-};
+import { invalidateOrgScopedQueries } from "#/queries/invalidate-org";
+import { useOrganisationsQuery } from "#/queries/organisations";
 
 const trigger = style({
   display: "flex",
@@ -92,45 +89,36 @@ export function OrganisationSwitcher() {
   const width = iconOnly ? 40 : isDesktop ? SIDEBAR_CONTENT_WIDTH : 176;
   const reduceMotion = useReducedMotion();
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { data: sessionData } = authClient.useSession();
+  const { data, isPending, isFetching, refetch } = useOrganisationsQuery();
 
-  const [organisations, setOrganisations] = useState<Organisation[]>([]);
   const [activeRole, setActiveRole] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createSlug, setCreateSlug] = useState("");
   const [creating, setCreating] = useState(false);
   const [slugTouched, setSlugTouched] = useState(false);
 
+  const organisations = data ?? [];
   const activeId = activeOrganizationIdFromSession(sessionData);
   const activeOrg = organisations.find((org) => org.id === activeId) ?? organisations[0] ?? null;
+  const loading = isPending || (isFetching && organisations.length === 0);
 
-  const refresh = useCallback(async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await authClient.organization.list();
-      if (error) {
-        ToastQueue.negative(error.message || "Could not load organisations.", { timeout: 5000 });
-        setOrganisations([]);
-        return;
-      }
-      setOrganisations((data as Organisation[] | null) ?? []);
-
-      const roleResult = await authClient.organization.getActiveMemberRole();
+  useEffect(() => {
+    let cancelled = false;
+    void authClient.organization.getActiveMemberRole().then((roleResult) => {
+      if (cancelled) return;
       if (!roleResult.error && roleResult.data?.role) {
         setActiveRole(String(roleResult.data.role));
       } else {
         setActiveRole(null);
       }
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh, activeId]);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [activeId]);
 
   async function setActive(organizationId: string) {
     const { error } = await authClient.organization.setActive({ organizationId });
@@ -138,8 +126,9 @@ export function OrganisationSwitcher() {
       ToastQueue.negative(error.message || "Could not switch organisation.", { timeout: 5000 });
       return;
     }
+    invalidateOrgScopedQueries(queryClient);
     await router.invalidate();
-    await refresh();
+    await refetch();
   }
 
   async function createOrganisation() {
@@ -152,12 +141,12 @@ export function OrganisationSwitcher() {
 
     setCreating(true);
     try {
-      const { data, error } = await authClient.organization.create({ name, slug });
+      const { data: created, error } = await authClient.organization.create({ name, slug });
       if (error) {
         ToastQueue.negative(error.message || "Could not create organisation.", { timeout: 5000 });
         return;
       }
-      const createdId = (data as Organisation | null)?.id;
+      const createdId = (created as { id?: string } | null)?.id;
       if (createdId) {
         await authClient.organization.setActive({ organizationId: createdId });
       }
@@ -166,8 +155,9 @@ export function OrganisationSwitcher() {
       setCreateName("");
       setCreateSlug("");
       setSlugTouched(false);
+      invalidateOrgScopedQueries(queryClient);
       await router.invalidate();
-      await refresh();
+      await refetch();
     } finally {
       setCreating(false);
     }

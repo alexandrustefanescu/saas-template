@@ -4,10 +4,10 @@ import { Button } from "#/components/button";
 import { Body, PageTitle } from "#/components/typography";
 import { ItemsSkeleton } from "#/features/items/items-skeleton";
 import { ItemsTable } from "#/features/items/items-table";
-import { listItems } from "#/lib/api/items";
+import { itemsQueryOptions } from "#/queries/items";
 
 export const Route = createFileRoute("/_dashboard/items")({
-  loader: () => listItems(),
+  loader: ({ context }) => context.queryClient.ensureQueryData(itemsQueryOptions()),
   pendingMs: 0,
   pendingComponent: ItemsSkeleton,
   component: ItemsPage,
@@ -15,8 +15,7 @@ export const Route = createFileRoute("/_dashboard/items")({
 });
 
 function ItemsPage() {
-  const items = Route.useLoaderData();
-  return <ItemsTable initialItems={items} />;
+  return <ItemsTable />;
 }
 
 function ItemsError({ error }: ErrorComponentProps) {

@@ -20,11 +20,13 @@ import Delete from "@react-spectrum/s2/icons/Delete";
 import FolderOpen from "@react-spectrum/s2/illustrations/linear/FolderOpen";
 import { ToastQueue } from "@react-spectrum/s2/Toast";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
+import { Button } from "#/components/button";
 import { PageBreadcrumbs } from "#/components/page-breadcrumbs";
 import { Body, PageTitle } from "#/components/typography";
 import { spectrumStyles } from "#/spectrum-styles";
 import { ApiError } from "#/lib/api/client";
-import { createItem, deleteItem, listItems, type Item } from "#/lib/api/items";
+import type { Item } from "#/lib/api/items";
+import { useCreateItemMutation, useDeleteItemMutation, useItemsQuery } from "#/queries/items";
 
 const layout = style({
   display: "flex",
@@ -73,17 +75,15 @@ function selectedIds(selection: Selection, items: Item[]) {
   return [...selection].map(String);
 }
 
-type Props = {
-  initialItems: Item[];
-};
-
-export function ItemsTable({ initialItems }: Props) {
-  const [items, setItems] = useState(initialItems);
+export function ItemsTable() {
+  const { data, isPending, isError, error, isFetching, refetch } = useItemsQuery();
+  const createMutation = useCreateItemMutation();
+  const deleteMutation = useDeleteItemMutation();
   const [name, setName] = useState("");
-  const [creating, setCreating] = useState(false);
   const [selectedKeys, setSelectedKeys] = useState<Selection>(new Set());
-  const [busy, setBusy] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
+  const items = data ?? [];
   const sortedItems = useMemo(
     () =>
       [...items].sort((a, b) => {
@@ -96,9 +96,7 @@ export function ItemsTable({ initialItems }: Props) {
     [items],
   );
 
-  async function refresh() {
-    setItems(await listItems());
-  }
+  const backgroundBusy = isFetching && !isPending;
 
   async function copySelected() {
     const ids = new Set(selectedIds(selectedKeys, sortedItems));
@@ -117,21 +115,40 @@ export function ItemsTable({ initialItems }: Props) {
   async function deleteSelected() {
     const ids = selectedIds(selectedKeys, sortedItems);
     if (ids.length === 0) return;
-    setBusy(true);
+    setDeleting(true);
     try {
-      await Promise.all(ids.map((id) => deleteItem(id)));
+      await Promise.all(ids.map((id) => deleteMutation.mutateAsync(id)));
       setSelectedKeys(new Set());
       ToastQueue.positive(ids.length === 1 ? "Item deleted." : `${ids.length} items deleted.`, {
         timeout: 4000,
       });
-      await refresh();
-    } catch (error) {
-      const message = error instanceof ApiError ? error.message : "Could not delete items.";
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Could not delete items.";
       ToastQueue.negative(message, { timeout: 5000 });
-      await refresh();
     } finally {
-      setBusy(false);
+      setDeleting(false);
     }
+  }
+
+  if (isPending) {
+    return null;
+  }
+
+  if (isError) {
+    return (
+      <section className={layout} aria-labelledby="items-heading">
+        <PageTitle id="items-heading">Items</PageTitle>
+        <Body>{error instanceof Error ? error.message : "Could not load items."}</Body>
+        <Button
+          variant="secondary"
+          onPress={() => {
+            void refetch();
+          }}
+        >
+          Try again
+        </Button>
+      </section>
+    );
   }
 
   return (
@@ -153,22 +170,21 @@ export function ItemsTable({ initialItems }: Props) {
           void (async () => {
             const trimmed = name.trim();
             if (!trimmed) return;
-            setCreating(true);
             try {
-              await createItem({ name: trimmed });
+              await createMutation.mutateAsync({ name: trimmed });
               setName("");
               ToastQueue.positive("Item created.", { timeout: 4000 });
-              await refresh();
-            } catch (error) {
-              const message = error instanceof ApiError ? error.message : "Could not create item.";
+            } catch (err) {
+              const message = err instanceof ApiError ? err.message : "Could not create item.";
               ToastQueue.negative(message, { timeout: 5000 });
-            } finally {
-              setCreating(false);
             }
           })();
         }}
       >
-        <div className={toolbar}>
+        <div
+          className={toolbar}
+          style={{ opacity: backgroundBusy ? 0.72 : 1, transition: "opacity 160ms ease" }}
+        >
           <TextField
             label="Name"
             value={name}
@@ -180,8 +196,8 @@ export function ItemsTable({ initialItems }: Props) {
           />
           <IconButton
             type="submit"
-            aria-label={creating ? "Adding item" : "Add item"}
-            isDisabled={creating || !name.trim()}
+            aria-label={createMutation.isPending ? "Adding item" : "Add item"}
+            isDisabled={createMutation.isPending || !name.trim()}
             data-testid="items-create"
           >
             <Add />
@@ -200,7 +216,7 @@ export function ItemsTable({ initialItems }: Props) {
           <ActionBar isEmphasized>
             <ActionButton
               aria-label="Copy"
-              isDisabled={busy}
+              isDisabled={deleting}
               onPress={() => {
                 void copySelected();
               }}
@@ -210,7 +226,7 @@ export function ItemsTable({ initialItems }: Props) {
             </ActionButton>
             <ActionButton
               aria-label="Delete"
-              isDisabled={busy}
+              isDisabled={deleting}
               data-testid="items-delete"
               onPress={() => {
                 void deleteSelected();

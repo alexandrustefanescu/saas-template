@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { Link } from "@react-spectrum/s2/Link";
 import { style } from "@react-spectrum/s2/style" with { type: "macro" };
 import { motion, useReducedMotion } from "motion/react";
+import { Button } from "#/components/button";
 import { PageBreadcrumbs } from "#/components/page-breadcrumbs";
 import { Body, PageTitle } from "#/components/typography";
-import type { AccountUser } from "#/lib/api/account";
 import { activeOrganizationIdFromSession, authClient } from "#/lib/auth-client";
+import { useMeQuery } from "#/queries/account";
 
 const layout = style({
   display: "flex",
@@ -49,7 +50,6 @@ const actions = style({
 });
 
 type Props = {
-  user: AccountUser;
   justOnboarded?: boolean;
 };
 
@@ -58,8 +58,8 @@ function firstName(name: string) {
   return part || name || "there";
 }
 
-export function HomePage({ user, justOnboarded = false }: Props) {
-  const greetingName = firstName(user.name);
+export function HomePage({ justOnboarded = false }: Props) {
+  const { data, isPending, isError, error, isFetching, refetch } = useMeQuery();
   const reduceMotion = useReducedMotion();
   const { data: sessionData } = authClient.useSession();
   const activeOrgId = activeOrganizationIdFromSession(sessionData);
@@ -73,9 +73,9 @@ export function HomePage({ user, justOnboarded = false }: Props) {
     let cancelled = false;
     void authClient.organization
       .getFullOrganization({ query: { organizationId: activeOrgId } })
-      .then(({ data }) => {
+      .then(({ data: org }) => {
         if (cancelled) return;
-        const name = (data as { name?: string } | null)?.name;
+        const name = (org as { name?: string } | null)?.name;
         setOrganisationName(typeof name === "string" ? name : null);
       });
     return () => {
@@ -83,8 +83,31 @@ export function HomePage({ user, justOnboarded = false }: Props) {
     };
   }, [activeOrgId]);
 
+  if (isPending) {
+    return null;
+  }
+
+  if (isError || !data) {
+    return (
+      <section className={layout} aria-labelledby="home-heading">
+        <PageTitle id="home-heading">Home</PageTitle>
+        <Body>{error instanceof Error ? error.message : "Could not load your account."}</Body>
+        <Button variant="secondary" onPress={() => void refetch()}>
+          Try again
+        </Button>
+      </section>
+    );
+  }
+
+  const greetingName = firstName(data.user.name);
+  const backgroundBusy = isFetching && !isPending;
+
   return (
-    <section className={layout} aria-labelledby="home-heading">
+    <section
+      className={layout}
+      aria-labelledby="home-heading"
+      style={{ opacity: backgroundBusy ? 0.9 : 1, transition: "opacity 160ms ease" }}
+    >
       <PageBreadcrumbs items={[{ id: "home", label: "Home" }]} />
       {justOnboarded ? (
         <motion.div
@@ -104,7 +127,7 @@ export function HomePage({ user, justOnboarded = false }: Props) {
       <div className={welcome}>
         <PageTitle id="home-heading">Welcome, {greetingName}</PageTitle>
         <Body>
-          Signed in as {user.email}
+          Signed in as {data.user.email}
           {organisationName ? <> · Active organisation: {organisationName}</> : null}. Jump into
           your items or update your account settings when you are ready.
         </Body>
